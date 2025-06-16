@@ -10,10 +10,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt # Permet de générer des graphiques
 
-radiation_data = pd.read_excel("C:\\Users\\BrunoFantoli\\Documents\\Energy_Model\\Data\\Solar radiation.xlsx", index_col=0)
-data_hourly_T_out_degC = pd.read_excel("C:\\Users\\BrunoFantoli\\Documents\\Energy_Model\\Data\\T_ext.xlsx", index_col=0)
-data_per_usage = pd.read_excel("C:\\Users\\BrunoFantoli\\Documents\\Energy_Model\\Data\\data_per_usage.xlsx", index_col=0)
-elec_data = pd.read_excel("C:\\Users\\BrunoFantoli\\Documents\\Energy_Model\\Data\\elec_time_series.xlsx", index_col=0)
+radiation_data = pd.read_excel("Data/Solar radiation.xlsx", index_col=0)
+data_hourly_T_out_degC = pd.read_excel("Data/T_ext.xlsx", index_col=0)
+data_per_usage = pd.read_excel("Data/data_per_usage.xlsx", index_col=0)
+elec_data = pd.read_excel("Data/elec_time_series.xlsx", index_col=0)
 
 couleursperso = ['#003f38', '#deeaf8', '#f1efa3', '#d9d9d9']
 
@@ -141,7 +141,7 @@ class building():
         print("La surface totale du bâtiment %s est de %s m². \nC'est un bâtiment de type %s qui se situe à %s. \n\nSa consommation annuelle de chauffage est de %s kWh et de %s kWh pour l'eau chaude sanitaire.\n\nSa consommation annuelle d'électricité est de %s kWh."%(self.name, self.surface_area_m2, self.profile, self.location, self.annual_heat_consumption_kwh, self.annual_heat_consumption_kwh*self.share_shw_demand/100,self.annual_elec_consumption_kwh))
     
     def _distribute_elec_cost(self):
-        peak_hours = (self.hourly_grid_demand_kwh.index.hour >= self.peak_start_time) & (self.hourly_grid_demand_kwh.index.hour < self.peak_end_time)
+        peak_hours = (self.hourly_grid_demand_kwh.index.hour >= self.peak_start_time) & (self.hourly_grid_demand_kwh.index.hour < self.peak_end_time) # type: ignore
         if(self.pv_installations==[]):
             self.hourly_elec_cost_euro = np.where(
                 peak_hours,  # Check if it's peak hours
@@ -246,7 +246,7 @@ class building():
         if self.type_ventilation == "No ventilation":
             self.Q_vent_m3_h = 0.04*self.protected_volume
         else:
-            if self.Q_vent_m3_h == 0:
+            if self.Q_vent_m3_h == 0: # type: ignore
                 self.Q_vent_m3_h = 22*self.average_occupation
         
         f_preheat = 1 - (0.71*self.vent_recovery_efficiency)
@@ -284,8 +284,8 @@ class building():
         # Create the inside temperature series
         self.hourly_T_in_degC = pd.Series(
             T_ambiant if ts.weekday() < self.opening_days_per_week and start_hour <= ts.hour < end_hour else T_reduced
-            for ts in self.hourly_T_out_degC .index
-        )
+            for ts in self.hourly_T_out_degC .index # type: ignore
+        ) # type: ignore
         # Assign the same index
         self.hourly_T_in_degC.index = self.hourly_T_out_degC .index
         self.hourly_T_in_degC.name = "Inside Temperature"
@@ -301,8 +301,8 @@ class building():
         self.hourly_Q_vent_kwh = pd.Series(
             0.34 * self.Q_vent_m3_h * f_preheat * (self.hourly_T_in_degC[ts] - self.hourly_T_out_degC [ts]) / 1000
             if ts.weekday() < self.opening_days_per_week and start_hour <= ts.hour < end_hour else 0
-            for ts in self.hourly_T_out_degC .index
-        )
+            for ts in self.hourly_T_out_degC .index # type: ignore
+        ) # type: ignore
 
         # Assign the same index
         self.hourly_Q_vent_kwh.index = self.hourly_T_out_degC .index
@@ -314,22 +314,22 @@ class building():
             solar_factor = 0
         else:
             solar_factor = np.average(self.windows["Facteur solaire"],weights=self.windows["Surface"])
-        self.hourly_solar_gains_kwh = 0.6*sum(self.windows["Surface"])*solar_factor*radiation_data[self.location]/1000
+        self.hourly_solar_gains_kwh = 0.6*sum(self.windows["Surface"])*solar_factor*radiation_data[self.location]/1000 # type: ignore
         
         """Energy balance"""
         hourly_energy_balance = self.hourly_Q_trans_kwh+self.hourly_Q_in_ex_kwh+self.hourly_Q_vent_kwh-self.hourly_solar_gains_kwh
         self.hourly_heating_demand_kwh = pd.Series(
             hourly_energy_balance[ts]
-            if hourly_energy_balance[ts] > 0 else 0
-            for ts in self.hourly_T_out_degC .index
-        )
+            if hourly_energy_balance[ts] > 0 else 0 # type: ignore
+            for ts in self.hourly_T_out_degC .index # type: ignore
+        ) # type: ignore
         self.hourly_heating_demand_kwh.index = self.hourly_T_out_degC .index
         self.hourly_heating_demand_kwh.name = "Heating Demand (kWh)" 
         self.hourly_cooling_demand_kwh = pd.Series(
             -hourly_energy_balance[ts]
-            if hourly_energy_balance[ts] < 0 else 0
-            for ts in self.hourly_T_out_degC .index
-        )
+            if hourly_energy_balance[ts] < 0 else 0 # type: ignore
+            for ts in self.hourly_T_out_degC .index # type: ignore
+        ) # type: ignore
         self.hourly_cooling_demand_kwh.index = self.hourly_T_out_degC .index
         self.hourly_cooling_demand_kwh.name = "Cooling Demand (kWh)" 
         
@@ -337,17 +337,17 @@ class building():
         self.hourly_shw_demand_kwh = pd.Series(
             self.average_occupation*data_per_usage.loc["ECS par personne par jour [l]"][self.profile]/(end_hour-start_hour)*(self.Temp_shw_degC-10)*1.16/1000
             if ts.weekday() < self.opening_days_per_week and start_hour <= ts.hour < end_hour else 0
-            for ts in self.hourly_T_out_degC .index
-        )
+            for ts in self.hourly_T_out_degC .index # type: ignore
+        ) # type: ignore
         self.hourly_shw_demand_kwh.index = self.hourly_T_out_degC .index
         self.hourly_shw_demand_kwh.name = "Sanitary Hot Water Demand (kWh)" 
         
         "Boiler requirements"
         self.hourly_boiler_consumption = pd.Series(
             (self.hourly_heating_demand_kwh[ts]+self.hourly_shw_demand_kwh[ts])/self.heating_units[0].efficiency
-            if self.hourly_heating_demand_kwh[ts]+self.hourly_shw_demand_kwh[ts] < self.total_heating_power_kw else self.total_heating_power_kw/self.heating_units[0].efficiency
-            for ts in self.hourly_T_out_degC.index
-        )
+            if self.hourly_heating_demand_kwh[ts]+self.hourly_shw_demand_kwh[ts] < self.total_heating_power_kw else self.total_heating_power_kw/self.heating_units[0].efficiency # type: ignore
+            for ts in self.hourly_T_out_degC.index # type: ignore
+        ) # type: ignore
         self.hourly_boiler_consumption.index = self.hourly_T_out_degC .index
         self.hourly_boiler_consumption.name = "Boiler consumption (kWh)" 
         if(self.hourly_boiler_consumption == self.total_heating_power_kw).sum()>0:

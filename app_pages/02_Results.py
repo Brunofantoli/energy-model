@@ -34,7 +34,7 @@ if 'buildings' in st.session_state:
             for b in st.session_state.buildings:
                 st.write(f"{b.name}: {b.surface_area_m2} m², profile: {b.profile}, Electrical bill : {b.hourly_elec_cost_euro.sum():.0f} €, Number of envelope elements : {len(b.roofs)+len(b.walls)+len(b.windows)+len(b.floors)}, number of PV installations : {len(b.pv_installations)}")
                 results = b._show_boiler_consumption()
-                results
+                results # type: ignore
 
     with tab2:
         building_names = [b.name for b in st.session_state.buildings]
