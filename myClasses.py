@@ -359,10 +359,7 @@ class building():
             self.hourly_grid_demand_kwh = self.hourly_elec_demand_kwh - self.hourly_pv_production_kwh
             self._distribute_elec_cost()
             self.fuel_price_euro_per_kwh = 0
-
-            
-            
-        
+                
         
     def _show_boiler_consumption(self, timestep='hourly'):
         fig, ax = plt.subplots(figsize=(5,5))
